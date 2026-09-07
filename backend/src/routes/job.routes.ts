@@ -37,18 +37,11 @@ import {
   RevisionProposalView,
 } from "../services/contract.service";
 import { MAX_PAGE_SIZE, config } from "../config";
+import { JOB_CATEGORIES } from "../constants/categories";
 
 const router = Router();
 
-const VALID_CATEGORIES = [
-  "Frontend",
-  "Backend",
-  "Smart Contract",
-  "Design",
-  "Mobile",
-  "Documentation",
-  "DevOps",
-] as const;
+const VALID_CATEGORIES = JOB_CATEGORIES;
 
 function isValidCategory(value: string): boolean {
   return VALID_CATEGORIES.some(
@@ -1118,6 +1111,15 @@ router.put(
     }
 
     const updateData = req.body;
+
+    if (
+      updateData.status &&
+      ["COMPLETED", "DISPUTED", "CANCELLED", "REFUNDED"].includes(updateData.status)
+    ) {
+      return res.status(400).json({
+        error: `Cannot update job status to ${updateData.status} directly.`,
+      });
+    }
 
     if (updateData.category && !isValidCategory(updateData.category)) {
       return res.status(422).json({

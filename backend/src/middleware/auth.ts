@@ -90,7 +90,14 @@ export const authenticate = async (
       "/auth/logout",
     ];
 
-    const isExempt = exemptRoutes.some((route) => req.path.includes(route));
+    const currentPath = req.path || "";
+    const isExempt = exemptRoutes.some(
+      (route) =>
+        currentPath.startsWith(route) ||
+        currentPath.startsWith(`/api${route}`) ||
+        currentPath.startsWith(`/api/v1${route}`) ||
+        currentPath.includes(route),
+    );
 
     if (!isExempt && !user.emailVerified) {
       res.status(403).json({
@@ -127,8 +134,15 @@ export const requireAdmin = async (
   try {
     const decoded = jwt.verify(token, config.jwtSecret) as {
       userId: string;
+      purpose?: string;
       tokenVersion?: number;
     };
+
+    if (decoded.purpose === "2fa_pending") {
+      res.status(401).json({ error: "2FA verification required." });
+      return;
+    }
+
     req.userId = decoded.userId;
 
     // Reject tokens invalidated by a password change (#787).
